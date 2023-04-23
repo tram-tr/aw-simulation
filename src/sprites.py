@@ -1,3 +1,5 @@
+# src/sprites.py
+
 import pygame
 
 class Player:

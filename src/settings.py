@@ -1,3 +1,5 @@
+# src/settings.py
+
 class Settings:
     screen_width = 800
     screen_height = 600

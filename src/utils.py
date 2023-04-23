@@ -1,4 +1,5 @@
 # src/utils.py
+import pygame
 
 def display_text(screen, text, position, font, color):
     # Function to display text on the screen

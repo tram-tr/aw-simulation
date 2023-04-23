@@ -4,7 +4,7 @@ import pygame
 import os
 from src.settings import Settings
 from src.sprites import Player, Country
-
+from src.utils import *
 class Game:
     def __init__(self):
         self.settings = Settings()
@@ -36,7 +36,7 @@ class Game:
         self.char_interval = 35
         self.elapsed_time = 0
 
-    def display_intro_text(self):
+    def _display_intro_text(self):
         y = 100
         for i, line in enumerate(self.intro_text[:self.current_line]):
             text_surface = self.font.render(line, True, (0, 0, 0))
@@ -51,6 +51,14 @@ class Game:
             text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2, y))
             self.screen.blit(text_surface, text_rect)
 
+        self.elapsed_time += self.clock.get_time()
+        if self.elapsed_time > self.char_interval:
+            self.current_char += 1
+            self.elapsed_time = 0
+            if self.current_line < len(self.intro_text) and self.current_char > len(self.intro_text[self.current_line]):
+                self.current_line += 1
+                self.current_char = 0
+
     def run(self):
         # game loop
         while self.running:
@@ -62,16 +70,8 @@ class Game:
 
     def _draw(self):
         self.screen.fill((255, 255, 255))
-        self.display_intro_text()
+        self._display_intro_text()
         pygame.display.update()
-
-        self.elapsed_time += self.clock.get_time()
-        if self.elapsed_time > self.char_interval:
-            self.current_char += 1
-            self.elapsed_time = 0
-            if self.current_line < len(self.intro_text) and self.current_char > len(self.intro_text[self.current_line]):
-                self.current_line += 1
-                self.current_char = 0
 
     def _handle_events(self):
         for event in pygame.event.get():

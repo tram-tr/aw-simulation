@@ -1,4 +1,4 @@
-# Project: Autonomous Weapon Simulation
+# Project: Autonomous Weapons Simulation
 
 This is a final project of PHIL 24448: Tech & Innovation Ethics
 

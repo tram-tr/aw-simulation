@@ -29,11 +29,16 @@ class Game:
             "Join us on this exciting journey into", 
             "the world of autonomous weapons and international relations!"
         ]
-
+        self.continue_button = Button(
+            "Continue", self.settings.screen_width // 2 - 100, 400, 200, 50,
+            (200, 200, 200), (225, 225, 225), self.font
+        )
+        self.intro_page = True
+        self.player_page = False
         self.running = True
         self.current_line = 0
         self.current_char = 0
-        self.char_interval = 35
+        self.char_interval = 30
         self.elapsed_time = 0
 
     def _display_intro_text(self):
@@ -58,6 +63,11 @@ class Game:
             if self.current_line < len(self.intro_text) and self.current_char > len(self.intro_text[self.current_line]):
                 self.current_line += 1
                 self.current_char = 0
+    
+    def _draw_player_page(self):
+        text_surface = self.font.render("Player page", True, (0, 0, 0))
+        text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2))
+        self.screen.blit(text_surface, text_rect)
 
     def run(self):
         # game loop
@@ -70,13 +80,25 @@ class Game:
 
     def _draw(self):
         self.screen.fill((255, 255, 255))
-        self._display_intro_text()
+        if self.intro_page:
+            self._display_intro_text()
+            if self.current_line >= len(self.intro_text):
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                self.continue_button.draw(self.screen, mouse_x, mouse_y)
+        elif self.player_page:
+            self._draw_player_page()
         pygame.display.update()
 
     def _handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+            if event.type == pygame.MOUSEBUTTONDOWN and self.intro_page:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                if self.continue_button.is_hover(mouse_x, mouse_y):
+                    self.intro_page = False
+                    pygame.time.wait(300)
+                    self.player_page = True
 
     def _update(self):
         # Update game state based on game logic (e.g., updating scores, checking for game over)

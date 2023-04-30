@@ -57,7 +57,7 @@ opponents = [
     },
 ]
 
-player_sprite = pygame.image.load("assets/images/DevelopedCountry.png")
+player_sprite = pygame.image.load("assets/images/Player.png")
 player_sprite = pygame.transform.scale(player_sprite, (sprite_size, sprite_size))
 
 class Game:
@@ -93,7 +93,7 @@ class Game:
         self.running = True
         self.current_line = 0
         self.current_char = 0
-        # self.char_interval = 30
+        self.char_interval = 30
         self.char_interval = 1
         self.elapsed_time = 0
 
@@ -130,7 +130,8 @@ class Game:
             'computer_selection_alert': None,
             'player_attack_particles': None,
             'opponent_attack_particles': None,
-            'player_resources': Resources(100, 100, (self.settings.screen_width/8, self.settings.screen_height/8), self.font),
+            'player_resources': Resources(0, 0, (self.settings.screen_width/8, self.settings.screen_height/8), self.font),
+            'country_resources': Resources(0, 0, (3*self.settings.screen_width/4, self.settings.screen_height/8), self.font),
             'next_button': Button("Continue", 
                 (self.settings.screen_width // 4), self.settings.screen_height*0.75, 
                 self.settings.screen_width//2, 50,
@@ -165,7 +166,7 @@ class Game:
         # game loop
         while self.running:
             self._handle_events()
-            self._update()
+            #self._update()
             self._draw()
             pygame.display.flip()
             self.clock.tick(self.settings.fps)
@@ -199,15 +200,8 @@ class Game:
         if(event.type == pygame.MOUSEBUTTONDOWN):
             mouse_x, mouse_y = pygame.mouse.get_pos()
             if self.continue_button.is_hover(mouse_x, mouse_y):
-                # self.intro_page = False
                 self.change_scene(1)
-
                 pygame.time.wait(300)
-                # self.player_page = True
-
-    def _update(self):
-        # Update game state based on game logic (e.g., updating scores, checking for game over)
-        pass
 
     def change_scene(self, scene):
         self.swipe_transition(scene)
@@ -319,10 +313,10 @@ class Game:
         self.draw_nav_arrows()
 
     def intro_page(self):
-        # self._display_intro_text()
-        # if self.current_line >= len(self.intro_text):
-        #     mouse_x, mouse_y = pygame.mouse.get_pos()
-        #     self.continue_button.draw(self.screen, mouse_x, mouse_y)
+        self._display_intro_text()
+        if self.current_line >= len(self.intro_text):
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            self.continue_button.draw(self.screen, mouse_x, mouse_y)
         mouse_x, mouse_y = pygame.mouse.get_pos()
         self.continue_button.draw(self.screen, mouse_x, mouse_y)
 
@@ -365,8 +359,8 @@ class Game:
                                 computer_alert_string = "Uses AWs!"
                             else:
                                 computer_alert_string = "Doesn't use AWs!"
-                            self.player_page_data['player_selection_alert'] = AlertPanel(player_alert_string, self.player_position[0]-(sprite_size/4), self.player_position[1]-(sprite_size/4), sprite_size*2, (sprite_size/4), self.font)
-                            self.player_page_data['computer_selection_alert'] = AlertPanel(computer_alert_string, self.opponent_position[0]-(sprite_size/4), self.opponent_position[1]-(sprite_size/4), sprite_size*2, (sprite_size/4), self.font)
+                            self.player_page_data['player_selection_alert'] = AlertPanel(player_alert_string, self.player_position[0]-(sprite_size/2), self.player_position[1]-(sprite_size/2), sprite_size*2, (sprite_size/4), self.font)
+                            self.player_page_data['computer_selection_alert'] = AlertPanel(computer_alert_string, self.opponent_position[0]-(sprite_size/2), self.opponent_position[1]-(sprite_size/2), sprite_size*2, (sprite_size/4), self.font)
 
                             # If attacking with AW, create explode particles
                             if(player_choice == 'use'):
@@ -433,10 +427,11 @@ class Game:
             self.screen.blit(shadow_surface, (self.player_position[0]+(sprite_size/8), shadow_y))
             self.screen.blit(shadow_surface, (self.opponent_position[0]+(sprite_size/8), shadow_y))
         
-            self.screen.blit(military_sprite, self.player_position)
+            self.screen.blit(player_sprite, self.player_position)
             self.screen.blit(self.player_page_data['current_opponent']['sprite'], self.opponent_position)
 
             self.player_page_data['player_resources'].draw(self.screen)
+            self.player_page_data['country_resources'].draw(self.screen)
 
             if(self.player_page_data['match_state'] == 'waiting' and len(self.player_page_data['past_matches']) < 5):
                 self.player_page_data['use_button'].draw(self.screen, mouse_x, mouse_y)

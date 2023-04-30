@@ -136,6 +136,16 @@ class Game:
                 (self.settings.screen_width // 4), self.settings.screen_height*0.75, 
                 self.settings.screen_width//2, 50,
                 (200, 200, 200), (225, 225, 225), self.font),
+            # index = match's payoff
+            # [(player_payoff, comp_payoff), (...)]
+            'payoffs': [],
+            
+            # display lives and resources lost at end of game for total score 
+            'player_lives_lost': 0,
+            'player_resources_lost': 0,
+
+            # player's results - sum of payoff from 5 matches 
+            'result': 0
         }
 
 
@@ -338,6 +348,13 @@ class Game:
                             self.player_page_data['match_state'] = 'selected'
                             self.player_page_data['selected_start_time'] = pygame.time.get_ticks()
 
+                            # for every start of new match, initialize lives and resources to 0
+                            if(len(self.player_page_data['rounds']) == 0):
+                                self.player_page_data['player_resources'].lives = 0
+                                self.player_page_data['player_resources'].resources = 0
+                                self.player_page_data['country_resources'].lives = 0
+                                self.player_page_data['country_resources'].resources = 0
+
                             # Get both choices
                             # 1 - use ; 0 - not use
                             player_choice = None
@@ -348,6 +365,24 @@ class Game:
                             self.player_page_data['player_selection'] = player_choice
                             computer_choice = get_computer_choice(self.player_page_data['current_opponent']['id'], self.player_page_data['rounds'])
                             self.player_page_data['computer_selection'] = computer_choice
+
+                            # use nash equilibrium
+                            if player_choice == 1 and computer_choice == 1:
+                                self.player_page_data['player_resources'].lives -= 10
+                                self.player_page_data['player_resources'].resources -= 100
+                                self.player_page_data['country_resources'].lives -= 10
+                                self.player_page_data['country_resources'].resources -= 100
+                            elif player_choice == 1 and computer_choice == 0:
+                                self.player_page_data['player_resources'].resources -= 100
+                                self.player_page_data['country_resources'].lives -= 100
+                            elif player_choice == 0 and computer_choice == 1:
+                                self.player_page_data['player_resources'].lives -= 100
+                                self.player_page_data['country_resources'].resources -= 100
+                            elif player_choice == 0 and computer_choice == 0:
+                                self.player_page_data['player_resources'].lives -= 1
+                                self.player_page_data['player_resources'].resources -= 10
+                                self.player_page_data['country_resources'].lives -= 1
+                                self.player_page_data['country_resources'].resources -= 10
 
                             # Alert the player and computer choices
                             player_alert_string = "" 
@@ -364,23 +399,45 @@ class Game:
                             self.player_page_data['computer_selection_alert'] = AlertPanel(computer_alert_string, self.opponent_position[0]-(sprite_size/2), self.opponent_position[1]-(sprite_size/2), sprite_size*2, (sprite_size/4), self.font)
 
                             # If attacking with AW, create explode particles
-                            if(player_choice == 'use'):
+                            if(player_choice == 1):
                                 self.player_page_data['opponent_attack_particles'] = ExplodeEffect((self.opponent_position[0] + (sprite_size/2), self.opponent_position[1] + (sprite_size/2)), 10, (30, 30, 30))
-                            if(computer_choice == 'use'):
+                            if(computer_choice == 1):
                                 self.player_page_data['player_attack_particles'] = ExplodeEffect((self.player_position[0] + (sprite_size/2), self.player_position[1] + (sprite_size/2)), 10, (30, 30, 30))
                             
                             # Save the past round
                             self.player_page_data['rounds'].append((player_choice, computer_choice))
-
+                            # when current match is over
                             if(len(self.player_page_data['rounds']) == 5):
+                                # record current match to past_matches array 
                                 self.player_page_data['past_matches'].append(('match {0}'.format(self.player_page_data['current_match'] + 1),self.player_page_data['rounds']))
+                                # reset rounds array
                                 self.player_page_data['rounds'] = []
+                                # calculate payoffs
+                                player_payoff = (0.7 * self.player_page_data['player_resources'].lives) + (0.3 * self.player_page_data['player_resources'].resources)
+                                computer_payoff = (0.7 * self.player_page_data['country_resources'].lives) + (0.3 * self.player_page_data['country_resources'].resources)
+                                # record payoffs 
+                                self.player_page_data['payoffs'].append(
+                                    (player_payoff, computer_payoff)
+                                )
+                                # record player's game total loss of lives and resources
+                                self.player_page_data['player_lives_lost'] += self.player_page_data['player_resources'].lives
+                                self.player_page_data['player_resources_lost'] += self.player_page_data['player_resources'].resources
 
+                                # if current match is no more than fifth one
                                 if(len(self.player_page_data['past_matches']) < 5):
                                     self.player_page_data['current_match'] += 1
                                     self.player_page_data['current_opponent'] = opponents[self.player_page_data['current_match']]
+                                
+                                # if five matches have been completed
                                 else: 
                                     self.player_page_data['state'] = 'completed'
+                                    # calculate player's result which is the sum of payoffs from 5 matches
+                                    result = 0
+                                    for match in self.player_page_data['payoffs']:
+                                        result += match[0]
+
+                                    
+                                    
 
 
     def player_page(self):

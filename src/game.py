@@ -130,7 +130,9 @@ class Game:
             'computer_selection_alert': None,
             'player_attack_particles': None,
             'opponent_attack_particles': None,
-            'player_resources': Resources(100, 100, (self.settings.screen_width/8, self.settings.screen_height/8), self.font),
+            'player_resources': Resources(0, 0, (self.settings.screen_width/8, self.settings.screen_height/8), self.font),
+            # country_resources is meant for 1v1 game
+            'country_resources': Resources(0, 0, (self.settings.screen_width/8, self.settings.screen_height/8), self.font),
             'next_button': Button("Continue", 
                 (self.settings.screen_width // 4), self.settings.screen_height*0.75, 
                 self.settings.screen_width//2, 50,
@@ -344,6 +346,13 @@ class Game:
                             self.player_page_data['match_state'] = 'selected'
                             self.player_page_data['selected_start_time'] = pygame.time.get_ticks()
 
+                            # for every start of new match, initialize lives and resources to 0
+                            if(len(self.player_page_data['rounds']) == 0):
+                                self.player_page_data['player_resources'].lives = 0
+                                self.player_page_data['player_resources'].resources = 0
+                                self.player_page_data['country_resources'].lives = 0
+                                self.player_page_data['country_resources'].resources = 0
+                            
                             # Get both choices
                             player_choice = None
                             if self.player_page_data['use_button'].is_hover(mouse_x, mouse_y):
@@ -352,6 +361,12 @@ class Game:
                                 player_choice = 'dont_use'
                             self.player_page_data['player_selection'] = player_choice
                             computer_choice = get_computer_choice(self.player_page_data['current_opponent']['id'], self.player_page_data['rounds'])
+                           
+                            # convert get_computer_choice value into appropriate value
+                            if computer_choice == 1:
+                                computer_choice = 'use'
+                            elif computer_choice == 0:
+                                computer_choice = 'dont_use'
                             self.player_page_data['computer_selection'] = computer_choice
 
                             # Alert the player and computer choices
@@ -368,19 +383,42 @@ class Game:
                             self.player_page_data['player_selection_alert'] = AlertPanel(player_alert_string, self.player_position[0]-(sprite_size/4), self.player_position[1]-(sprite_size/4), sprite_size*2, (sprite_size/4), self.font)
                             self.player_page_data['computer_selection_alert'] = AlertPanel(computer_alert_string, self.opponent_position[0]-(sprite_size/4), self.opponent_position[1]-(sprite_size/4), sprite_size*2, (sprite_size/4), self.font)
 
+                            # Use nash equilibrium and update player & country score
+                            if player_choice == "use" and computer_choice == "use":
+                                self.player_page_data['player_resources'].lives -= 10
+                                self.player_page_data['player_resources'].resources -= 100
+                                self.player_page_data['country_resources'].lives -= 10
+                                self.player_page_data['country_resources'].resources -= 100
+                            elif player_choice == "use" and computer_choice == "dont_use":
+                                self.player_page_data['player_resources'].resources -= 100
+                                self.player_page_data['country_resources'].lives -= 100
+                            elif player_choice == "dont_use" and computer_choice == "use":
+                                self.player_page_data['player_resources'].lives -= 100
+                                self.player_page_data['country_resources'].resources -= 100
+                            elif player_choice == "dont_use" and player_choice == "dont_use":
+                                self.player_page_data['player_resources'].lives -= 1
+                                self.player_page_data['player_resources'].resources -= 10
+                                self.player_page_data['country_resources'].lives -= 1
+                                self.player_page_data['country_resources'].resources -= 10
+
                             # If attacking with AW, create explode particles
                             if(player_choice == 'use'):
                                 self.player_page_data['opponent_attack_particles'] = ExplodeEffect((self.opponent_position[0] + (sprite_size/2), self.opponent_position[1] + (sprite_size/2)), 10, (30, 30, 30))
                             if(computer_choice == 'use'):
                                 self.player_page_data['player_attack_particles'] = ExplodeEffect((self.player_position[0] + (sprite_size/2), self.player_position[1] + (sprite_size/2)), 10, (30, 30, 30))
-                            
+
                             # Save the past round
                             self.player_page_data['rounds'].append((player_choice, computer_choice))
 
+                            # if 5 rounds / 1 match has passed
                             if(len(self.player_page_data['rounds']) == 5):
-                                self.player_page_data['past_matches'].append(self.player_page_data['rounds'])
-                                self.player_page_data['rounds'] = []
+                                # calculate payoff
 
+                                # record 5 past rounds 
+                                self.player_page_data['past_matches'].append(self.player_page_data['rounds'])
+                                # reset current record of rounds 
+                                self.player_page_data['rounds'] = []
+                                # if still under five matches 
                                 if(len(self.player_page_data['past_matches']) < 5):
                                     self.player_page_data['current_match'] += 1
                                     self.player_page_data['current_opponent'] = opponents[self.player_page_data['current_match']]

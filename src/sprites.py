@@ -30,6 +30,7 @@ class Resources:
         screen.blit(text_surface, text_rect)
 
 # Given the game so far and the strategy in use, make the choice
+# 1 - use ; 0 - not use
 def get_computer_choice(strategy, past_rounds):
     if(strategy == 1): # Developed Country
         # Strategy: Cautious - choose to either cooperate or defect on what the opponent chose to do in the last round

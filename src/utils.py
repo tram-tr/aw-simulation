@@ -303,9 +303,9 @@ class AlertPanel:
     def __init__(self, text, x, y, width, height, font):
         self.active = True
         self.created = pygame.time.get_ticks()
-        self.active_time = 10000
-        self.fade_time = 5000
-        self.fade_duration = 5000
+        self.active_time = 2000
+        self.fade_time = 1000
+        self.fade_duration = 1000
 
         self.text = text
         self.x = x

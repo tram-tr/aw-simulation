@@ -339,23 +339,24 @@ class Game:
                             self.player_page_data['selected_start_time'] = pygame.time.get_ticks()
 
                             # Get both choices
+                            # 1 - use ; 0 - not use
                             player_choice = None
                             if self.player_page_data['use_button'].is_hover(mouse_x, mouse_y):
-                                player_choice = 'use'
+                                player_choice = 1
                             elif self.player_page_data['dont_use_button'].is_hover(mouse_x, mouse_y):
-                                player_choice = 'dont_use'
+                                player_choice = 0
                             self.player_page_data['player_selection'] = player_choice
                             computer_choice = get_computer_choice(self.player_page_data['current_opponent']['id'], self.player_page_data['rounds'])
                             self.player_page_data['computer_selection'] = computer_choice
 
                             # Alert the player and computer choices
                             player_alert_string = "" 
-                            if(player_choice == "use"): 
+                            if(player_choice == 1): 
                                 player_alert_string = "Uses AWs!"
                             else: 
                                 player_alert_string = "Doesn't use AWs!"
                             computer_alert_string = ""
-                            if(computer_choice == "use"):
+                            if(computer_choice == 1):
                                 computer_alert_string = "Uses AWs!"
                             else:
                                 computer_alert_string = "Doesn't use AWs!"
@@ -372,7 +373,7 @@ class Game:
                             self.player_page_data['rounds'].append((player_choice, computer_choice))
 
                             if(len(self.player_page_data['rounds']) == 5):
-                                self.player_page_data['past_matches'].append(self.player_page_data['rounds'])
+                                self.player_page_data['past_matches'].append(('match {0}'.format(self.player_page_data['current_match'] + 1),self.player_page_data['rounds']))
                                 self.player_page_data['rounds'] = []
 
                                 if(len(self.player_page_data['past_matches']) < 5):

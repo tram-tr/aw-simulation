@@ -104,7 +104,7 @@ class Game:
                 self.rgb_colors["red"], self.rgb_colors["dark_red"], self.font), # red
             'past_matches': [],
             'match_state': 'waiting',
-            'current_match': -1,
+            'current_match': 0,
             'rounds': [],
             'current_opponent': opponents[0],
             'player_selection': None,
@@ -184,7 +184,7 @@ class Game:
                 (self.settings.screen_width // 4), self.settings.screen_height*0.75, 
                 self.settings.screen_width//2, 50,
                 (200, 200, 200), (225, 225, 225), self.font),
-            'current_match': 0,
+            'current_match': -1,
         }
         
         # calculate league simulation results before rendering
@@ -514,6 +514,7 @@ class Game:
 
     def handle_player_events(self, event):
         if(event.type == pygame.MOUSEBUTTONDOWN):
+
             # print(self.player_page_data['past_matches'])
             # print(self.player_page_data['match_state'])
 
@@ -808,11 +809,12 @@ class Game:
             else:
                 color = self.rgb_colors['gray']
             
-            pygame.draw.line(self.screen, color, start, end) # 0 to 1
+            pygame.draw.line(self.screen, color, start, end, 5) # 5 pixels thick
 
 
     def tournament_results(self, p1, p2):
         if (p1 < 0):
+            self.tournament_page_data['current_match'] = -1
             return
 
         current_match = self.tournament_page_data['current_match']

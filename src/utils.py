@@ -312,11 +312,18 @@ class AlertPanel:
         self.y = y
         self.width = width
         self.height = height
-        self.color = (100, 100, 100)
+        self.color = None
         self.font = font
+    
+        if (text == "Uses AWs!"):
+            self.color = (92, 232, 92)
+        else:
+            self.color = (232, 92, 92)
+
         self.text_color = (255, 255, 255)
 
     def draw(self, screen):
+
         alpha = 1
         if self.active_time > 0:
             self.active_time -= (pygame.time.get_ticks() - self.created)

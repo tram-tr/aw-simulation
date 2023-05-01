@@ -601,7 +601,7 @@ class Game:
             self.player_page_data['computer_selection_alert'].draw(self.screen)
             pygame.display.flip()  # update the screen
 
-            pygame.time.wait(1500) # display for 1.5 seconds
+            pygame.time.wait(1000) # display for 1.5 seconds
 
             # pop alert panel
             self.player_page_data['match_state'] = 'waiting'
@@ -642,7 +642,7 @@ class Game:
         if(event.type == pygame.MOUSEBUTTONDOWN):
 
             mouse_x, mouse_y = pygame.mouse.get_pos()
-            if self.tournament_page_data['instruction_panel']['panel'].active and self.player_page_data['instruction_panel']['panel'].is_hover(mouse_x, mouse_y):
+            if self.tournament_page_data['instruction_panel']['panel'].active:
                 self.tournament_page_data['instruction_panel']['panel'].active = False
             elif self.tournament_page_data['next_button'].is_hover(mouse_x, mouse_y):
                 self.swipe_transition(self.current_scene + 1)
@@ -655,7 +655,7 @@ class Game:
         # self.screen.blit(text_surface, text_rect)
         # Define the text to display
 
-        font_path = os.path.join("assets", "fonts", "Minecraft.ttf")
+        font_path = os.path.join("assets", "fonts", "PixelOperatorSC-Bold.ttf")
         self.font = pygame.font.Font(font_path, 18)
         # Render the text
         text_surface = self.font.render("Your total scores are...", True, (0,0,0))
@@ -679,7 +679,7 @@ class Game:
         if(event.type == pygame.MOUSEBUTTONDOWN):
 
             mouse_x, mouse_y = pygame.mouse.get_pos()
-            if self.tournament_page_data['instruction_panel']['panel'].active and self.player_page_data['instruction_panel']['panel'].is_hover(mouse_x, mouse_y):
+            if self.tournament_page_data['instruction_panel']['panel'].active:
                 self.tournament_page_data['instruction_panel']['panel'].active = False
             elif self.tournament_page_data['next_button'].is_hover(mouse_x, mouse_y):
                 self.swipe_transition(self.current_scene + 1)

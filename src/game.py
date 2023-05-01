@@ -378,6 +378,8 @@ class Game:
                 
                 pygame.display.flip()
 
+
+
     def draw_nav_arrows(self):
         mouse_x, mouse_y = pygame.mouse.get_pos()
         # Left arrow
@@ -564,12 +566,11 @@ class Game:
             except:
                 pygame.draw.circle(self.screen, (50, 50, 50), circ_pos, 20, 3)
 
-            # if(len(self.player_page_data['rounds']) < i+1):
-            #     pygame.draw.circle(self.screen, (50, 50, 50), circ_pos, 20, 0)
-            # else:
-            # pygame.draw.circle(self.screen, (50, 50, 50), circ_pos, 20, 3)
-            y_start += y_step
-
+                # if(len(self.player_page_data['rounds']) < i+1):
+                #     pygame.draw.circle(self.screen, (50, 50, 50), circ_pos, 20, 0)
+                # else:
+                # pygame.draw.circle(self.screen, (50, 50, 50), circ_pos, 20, 3)
+                y_start += y_step
                 
         # Find player and opponent positions
         self.player_position = ((self.settings.screen_width/4) - (sprite_size/2), (self.settings.screen_height/2) - (sprite_size/2))
@@ -685,9 +686,34 @@ class Game:
                 self.swipe_transition(self.current_scene + 1)
 
     def tournament_page(self):
-        text_surface = self.font.render("The tournament", True, (0, 0, 0))
-        text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2))
-        self.screen.blit(text_surface, text_rect)
+
+        # Render the text
+        text_surface = self.font.render("Match X", True, (0,0,0))
+
+        # Draw the text on the screen surface
+        self.screen.blit(text_surface, (30, 30))
+
+        sprite = opponents[0]['sprite']
+        self.screen.blit(sprite, (340, 60))  # Draw the sprite at the top-left corner of the screen
+        sprite = opponents[1]['sprite']
+        self.screen.blit(sprite, (170, 150))
+        sprite = opponents[2]['sprite']
+        self.screen.blit(sprite, (520, 150))
+        sprite = opponents[3]['sprite']
+        self.screen.blit(sprite, (250, 280))
+        sprite = opponents[4]['sprite']
+        self.screen.blit(sprite, (450, 280))
+
+        pygame.draw.line(self.screen, (128, 128, 128), (400, 200), (285, 230)) # 0 to 1
+        pygame.draw.line(self.screen, (128, 128, 128), (400, 200), (525, 230)) # 0 to 2
+        pygame.draw.line(self.screen, (128, 128, 128), (400, 200), (320, 270)) # 0 to 3
+        pygame.draw.line(self.screen, (128, 128, 128), (400, 200), (480, 270)) # 0 to 4
+        pygame.draw.line(self.screen, (128, 128, 128), (285, 230), (525, 230)) # 1 to 2
+        pygame.draw.line(self.screen, (128, 128, 128), (285, 230), (320, 270)) # 1 to 3
+        pygame.draw.line(self.screen, (128, 128, 128), (285, 230), (480, 270)) # 1 to 4
+        pygame.draw.line(self.screen, (128, 128, 128), (525, 230), (320, 270)) # 2 to 3
+        pygame.draw.line(self.screen, (128, 128, 128), (525, 230), (480, 270)) # 2 to 4
+        pygame.draw.line(self.screen, (128, 128, 128), (320, 270), (480, 270)) # 3 to 4
 
         mouse_x, mouse_y = pygame.mouse.get_pos()
     

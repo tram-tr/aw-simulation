@@ -71,18 +71,27 @@ class Game:
         self.clock = pygame.time.Clock()
         self.player = Player()
         self.countries = [Country(strategy) for strategy in self.settings.strategies]
-        font_path = os.path.join("assets", "fonts", "Minecraft.ttf")
-        self.font = pygame.font.Font(font_path, 15)
+        font_path = os.path.join("assets", "fonts", "PixelOperatorSC-Bold.ttf")
+        self.font = pygame.font.Font(font_path, 20)
+        self.display_time = 1000  # 1 second
+
         self.intro_text = [
-            "Welcome to our simulation project exploring", 
-            "the impact of autonomous weapons on international relations.",
-            "Using game theory and the classic Prisoner's Dilemma,",
-            "we'll examine potential the use of autonomous weapons",
-            "in a conflict scenario, gaining insights into", 
-            "their potential impact and ethical implications.", 
+            "Welcome to our simulation exploring", 
+            "government use of autonomous weapons in conflict.",
+            "Using game theory and the Prisoner's Dilemma,",
+            "let's learn about the ethical implications.", 
             "",
-            "Join us on this exciting journey into", 
-            "the world of autonomous weapons and international relations!"
+            "Embark this exciting journey into", 
+            "the world of autonomous weapons and game theory!"
+        ]
+        self.player_intro_text = [
+            "1v1 MODE",
+            "",
+            "The year is 2050.",
+            "You are the newly hired expert",
+            "of autonomous weapons in USA's military.",
+            "You must decide whether or not to use",
+            "autonous weapons in conflict", "with each presented threat..."
         ]
         self.continue_button = Button(
             "Continue", self.settings.screen_width // 2 - 100, 400, 200, 50,
@@ -97,15 +106,10 @@ class Game:
         self.char_interval = 1
         self.elapsed_time = 0
 
-        self.navleft = NavArrowLeft(50)
-        self.navright = NavArrowRight(50)
+        self.navleft = NavArrowLeft(40)
+        self.navright = NavArrowRight(40)
 
         self.player_page_data = {
-            'instruction_panel': {
-                'panel': InfoPanel(["The year is 2050.", "", "You are the newly hired expert", "of autonomous weapons in", "the United States of America's", "military. Your task is to", "decide whether or not to use", "autonous weapons in conflict", "with each presented threat."], "okay...", self.font),
-                # 'deactivated': False,
-                'active': True,
-            },
             # 'description_top': {["The decision is yours to make. Before you, lies a terminal that controls an", 
             #                         "autonomous weapon system. If you activate it, your opponent gains an advantage,",
             #                         "but if they activate it, you gain an advantage. You both have a choice to either",
@@ -118,12 +122,11 @@ class Game:
                 'smoke': SmokeBackground(20, (0, 0, 0)),
                 'active': True,
             },
-            'in_game': False,
-            'use_button': Button("Use Autonomous Weapons", 
+            'use_button': Button("USE Autonomous Weapons", 
                 (self.settings.screen_width // 4) - 175, self.settings.screen_height*0.75, 
                 350, 50,
                 (200, 200, 200), (225, 225, 225), self.font),
-            'dont_use_button': Button("Don't Use Autonomous Weapons", 
+            'dont_use_button': Button("DONT'T Use Autonomous Weapons", 
                 (3*self.settings.screen_width // 4) - 175, self.settings.screen_height*0.75, 
                 350, 50,
                 (200, 200, 200), (225, 225, 225), self.font),
@@ -144,6 +147,7 @@ class Game:
                 (self.settings.screen_width // 4), self.settings.screen_height*0.75, 
                 self.settings.screen_width//2, 50,
                 (200, 200, 200), (225, 225, 225), self.font),
+
             # index = match's payoff
             # [(player_payoff, comp_payoff), (...)]
             'payoffs': [],
@@ -220,6 +224,29 @@ class Game:
             if self.current_line < len(self.intro_text) and self.current_char > len(self.intro_text[self.current_line]):
                 self.current_line += 1
                 self.current_char = 0
+    
+    def _display_player_intro_text(self):
+        y = 100
+        for i, line in enumerate(self.player_intro_text[:self.current_line]):
+            text_surface = self.font.render(line, True, (0, 0, 0))
+            text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2, y))
+            self.screen.blit(text_surface, text_rect)
+            y += 30
+
+        # typing effect for the current line
+        if self.current_line < len(self.player_intro_text):
+            current_text = self.player_intro_text[self.current_line][:self.current_char]
+            text_surface = self.font.render(current_text, True, (0, 0, 0))
+            text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2, y))
+            self.screen.blit(text_surface, text_rect)
+
+        self.elapsed_time += self.clock.get_time()
+        if self.elapsed_time > self.char_interval:
+            self.current_char += 1
+            self.elapsed_time = 0
+            if self.current_line < len(self.player_intro_text) and self.current_char > len(self.player_intro_text[self.current_line]):
+                self.current_line += 1
+                self.current_char = 0
 
     def run(self):
         # game loop
@@ -251,8 +278,10 @@ class Game:
             if(self.current_scene == 0):
                 self.handle_intro_events(event)
             elif(self.current_scene == 1):
-                self.handle_player_events(event)
+                self.handle_intro_events(event)
             elif(self.current_scene == 2):
+                self.handle_player_events(event)
+            elif(self.current_scene == 3):
                 self.handle_explanation_events(event)
             elif(self.current_scene == 3):
                 self.handle_tournament_events(event)
@@ -261,7 +290,7 @@ class Game:
         if(event.type == pygame.MOUSEBUTTONDOWN):
             mouse_x, mouse_y = pygame.mouse.get_pos()
             if self.continue_button.is_hover(mouse_x, mouse_y):
-                self.change_scene(1)
+                self.change_scene(self.current_scene+1)
                 pygame.time.wait(300)
 
     def change_scene(self, scene):
@@ -352,12 +381,12 @@ class Game:
     def draw_nav_arrows(self):
         mouse_x, mouse_y = pygame.mouse.get_pos()
         # Left arrow
-        if(self.current_scene > 0):
+        if(self.current_scene > 1):
             # Set up the left arrow coordinates
             self.navleft.draw(self.screen, mouse_x, mouse_y)
         
         # Right arrow
-        if(self.current_scene < self.num_scenes-1):
+        if((self.current_scene < self.num_scenes-1) and (self.current_scene > 1)):
             # Set up the right arrow coordinates
             self.navright.draw(self.screen, mouse_x, mouse_y)
 
@@ -367,8 +396,10 @@ class Game:
         elif(self.current_scene == 0):
             self.intro_page()
         elif(self.current_scene == 1):
-            self.player_page()
+            self.player_intro_page()
         elif(self.current_scene == 2):
+            self.player_page()
+        elif(self.current_scene == 3):
             self.explanation_page()
         elif(self.current_scene == 3):
             self.tournament_page()
@@ -382,6 +413,15 @@ class Game:
             self.continue_button.draw(self.screen, mouse_x, mouse_y)
         mouse_x, mouse_y = pygame.mouse.get_pos()
         self.continue_button.draw(self.screen, mouse_x, mouse_y)
+    
+    def player_intro_page(self):
+        self._display_player_intro_text()
+        if self.current_line >= len(self.intro_text):
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            self.continue_button.draw(self.screen, mouse_x, mouse_y)
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        self.continue_button.draw(self.screen, mouse_x, mouse_y)
+
 
     def handle_player_events(self, event):
         if(event.type == pygame.MOUSEBUTTONDOWN):
@@ -389,12 +429,10 @@ class Game:
             print(self.player_page_data['match_state'])
 
             mouse_x, mouse_y = pygame.mouse.get_pos()
-            if self.player_page_data['instruction_panel']['panel'].active and self.player_page_data['instruction_panel']['panel'].is_hover(mouse_x, mouse_y):
-                self.player_page_data['instruction_panel']['panel'].active = False
-                self.player_page_data['in_game'] = True
-            elif len(self.player_page_data['past_matches']) == 5 and self.player_page_data['next_button'].is_hover(mouse_x, mouse_y):
+    
+            if len(self.player_page_data['past_matches']) == 5 and self.player_page_data['next_button'].is_hover(mouse_x, mouse_y):
                 self.swipe_transition(self.current_scene + 1)
-            elif self.player_page_data['in_game']:
+            else:
                 if(len(self.player_page_data['past_matches']) < 5):
                     if (self.player_page_data['match_state'] == 'waiting'):
                         if(self.player_page_data['use_button'].is_hover(mouse_x, mouse_y) or self.player_page_data['dont_use_button'].is_hover(mouse_x, mouse_y)):
@@ -448,8 +486,10 @@ class Game:
                                 computer_alert_string = "Uses AWs!"
                             else:
                                 computer_alert_string = "Doesn't use AWs!"
+                            
                             self.player_page_data['player_selection_alert'] = AlertPanel(player_alert_string, self.player_position[0]-(sprite_size/2), self.player_position[1]-(sprite_size/2), sprite_size*2, (sprite_size/4), self.font)
                             self.player_page_data['computer_selection_alert'] = AlertPanel(computer_alert_string, self.opponent_position[0]-(sprite_size/2), self.opponent_position[1]-(sprite_size/2), sprite_size*2, (sprite_size/4), self.font)
+
 
                             # If attacking with AW, create explode particles
                             if(player_choice == 1):
@@ -491,95 +531,112 @@ class Game:
 
                                     
                                     
+
+    def draw_player_choices(self):
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+
+        if(self.player_page_data['match_state'] == 'waiting' and len(self.player_page_data['past_matches']) < 5):
+            self.player_page_data['use_button'].draw(self.screen, mouse_x, mouse_y)
+            self.player_page_data['dont_use_button'].draw(self.screen, mouse_x, mouse_y)
+            pygame.display.flip()
+
     def player_page(self):
         mouse_x, mouse_y = pygame.mouse.get_pos()
+        self.player_page_data['smoke_background']['active'] = False #temp fix @solina
+
         if(self.player_page_data['smoke_background']['active']):
             self.player_page_data['smoke_background']['smoke'].draw(self.screen)
 
-        if(self.player_page_data['instruction_panel']['panel'].active):
-            self.player_page_data['instruction_panel']['panel'].draw(self.screen, mouse_x, mouse_y)
-        else:
-            text_surface = self.font.render(f"Match {self.player_page_data['current_match'] + 1}", True, (0, 0, 0))
-            text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 4))
-            self.screen.blit(text_surface, text_rect)
+        text_surface = self.font.render(f"Match {self.player_page_data['current_match'] + 1}", True, (0, 0, 0))
+        text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 4))
+        self.screen.blit(text_surface, text_rect)
 
-            center_x = self.settings.screen_width//2
-            y_spread = self.settings.screen_height/3
-            y_step = y_spread/4
-            y_start = (self.settings.screen_height//2)-(y_spread/2)
+        center_x = self.settings.screen_width//2
+        y_spread = self.settings.screen_height/3
+        y_step = y_spread/4
+        y_start = (self.settings.screen_height//2)-(y_spread/2)
 
-            for i in range(5):
-                circ_pos = (center_x, y_start)
-                try:
-                    if(self.player_page_data['rounds'][i]):
-                        pygame.draw.circle(self.screen, (50, 50, 50), circ_pos, 20, 0)
-                except:
-                    pygame.draw.circle(self.screen, (50, 50, 50), circ_pos, 20, 3)
+        for i in range(5):
+            circ_pos = (center_x, y_start)
+            try:
+                if(self.player_page_data['rounds'][i]):
+                    pygame.draw.circle(self.screen, (50, 50, 50), circ_pos, 20, 0)
+            except:
+                pygame.draw.circle(self.screen, (50, 50, 50), circ_pos, 20, 3)
 
-                # if(len(self.player_page_data['rounds']) < i+1):
-                #     pygame.draw.circle(self.screen, (50, 50, 50), circ_pos, 20, 0)
-                # else:
-                # pygame.draw.circle(self.screen, (50, 50, 50), circ_pos, 20, 3)
-                y_start += y_step
+            # if(len(self.player_page_data['rounds']) < i+1):
+            #     pygame.draw.circle(self.screen, (50, 50, 50), circ_pos, 20, 0)
+            # else:
+            # pygame.draw.circle(self.screen, (50, 50, 50), circ_pos, 20, 3)
+            y_start += y_step
 
                 
-            # Find player and opponent positions
-            self.player_position = ((self.settings.screen_width/4) - (sprite_size/2), (self.settings.screen_height/2) - (sprite_size/2))
-            self.opponent_position = ((3*self.settings.screen_width/4) - (sprite_size/2), (self.settings.screen_height/2) - (sprite_size/2))
+        # Find player and opponent positions
+        self.player_position = ((self.settings.screen_width/4) - (sprite_size/2), (self.settings.screen_height/2) - (sprite_size/2))
+        self.opponent_position = ((3*self.settings.screen_width/4) - (sprite_size/2), (self.settings.screen_height/2) - (sprite_size/2))
 
-            # Create shadow surface
-            shadow_surface = pygame.Surface((3*sprite_size/4, sprite_size/4), pygame.SRCALPHA)
-            pygame.draw.ellipse(shadow_surface, (50, 50, 50), shadow_surface.get_rect())
+        # Create shadow surface
+        shadow_surface = pygame.Surface((3*sprite_size/4, sprite_size/4), pygame.SRCALPHA)
+        pygame.draw.ellipse(shadow_surface, (50, 50, 50), shadow_surface.get_rect())
 
-            # Draw the shadows
-            shadow_y = self.player_position[1]+(7*sprite_size/8)
-            self.screen.blit(shadow_surface, (self.player_position[0]+(sprite_size/8), shadow_y))
-            self.screen.blit(shadow_surface, (self.opponent_position[0]+(sprite_size/8), shadow_y))
-        
-            self.screen.blit(player_sprite, self.player_position)
-            self.screen.blit(self.player_page_data['current_opponent']['sprite'], self.opponent_position)
+        # Draw the shadows
+        shadow_y = self.player_position[1]+(7*sprite_size/8)
+        self.screen.blit(shadow_surface, (self.player_position[0]+(sprite_size/8), shadow_y))
+        self.screen.blit(shadow_surface, (self.opponent_position[0]+(sprite_size/8), shadow_y))
+    
+        self.screen.blit(player_sprite, self.player_position)
+        self.screen.blit(self.player_page_data['current_opponent']['sprite'], self.opponent_position)
 
-            self.player_page_data['player_resources'].draw(self.screen)
-            self.player_page_data['country_resources'].draw(self.screen)
+        self.player_page_data['player_resources'].draw(self.screen)
+        self.player_page_data['country_resources'].draw(self.screen)
 
-            if(self.player_page_data['match_state'] == 'waiting' and len(self.player_page_data['past_matches']) < 5):
-                self.player_page_data['use_button'].draw(self.screen, mouse_x, mouse_y)
-                self.player_page_data['dont_use_button'].draw(self.screen, mouse_x, mouse_y)
-            
-            # Display message of what each side chose
-            if(self.player_page_data['player_selection_alert'] != None):
-                if(self.player_page_data['player_selection_alert'].active):
-                    self.player_page_data['player_selection_alert'].draw(self.screen)
-                else:
-                    if(self.player_page_data['match_state'] == 'completed'):
-                        self.swipe_transition(self.current_scene + 1)
-                    else:
-                        self.player_page_data['match_state'] = 'waiting'
-                        self.player_page_data['player_selection_alert'] = None
-            if(self.player_page_data['computer_selection_alert'] != None):
-                if(self.player_page_data['computer_selection_alert'].active):
-                    self.player_page_data['computer_selection_alert'].draw(self.screen)
-                else:
-                    self.player_page_data['match_state'] = 'waiting'
-                    self.player_page_data['computer_selection_alert'] = None
-                 
-            # Display particles when attacking with AW
-            if(self.player_page_data['player_attack_particles'] != None):
-                if(self.player_page_data['player_attack_particles'].active):
-                    self.player_page_data['player_attack_particles'].draw(self.screen)
-                else:
-                    self.player_page_data['player_attack_particles'] = None
-            if(self.player_page_data['opponent_attack_particles'] != None):
-                if(self.player_page_data['opponent_attack_particles'].active):
-                    self.player_page_data['opponent_attack_particles'].draw(self.screen)
-                else:
-                    self.player_page_data['opponent_attack_particles'] = None
+        self.draw_player_choices()
 
-            if(len(self.player_page_data['past_matches']) == 5):
-                self.player_page_data['next_button'].draw(self.screen, mouse_x, mouse_y)
+        # Display response message
+        if (self.player_page_data['player_selection_alert'] != None) and (self.player_page_data['computer_selection_alert'] != None) :
+        # and (self.player_page_data['player_selection_alert'].active) and (self.player_page_data['computer_selection_alert'].active):
+            # start_time = pygame.time.get_ticks()  # get current time in milliseconds
+            # while pygame.time.get_ticks() - start_time < self.display_time: # display for 1 second
+            self.player_page_data['player_selection_alert'].draw(self.screen)
+            self.player_page_data['computer_selection_alert'].draw(self.screen)
+            pygame.display.flip()  # update the screen
+
+            pygame.time.wait(1500) # display for 1.5 seconds
+
+            # pop alert panel
+            self.player_page_data['match_state'] = 'waiting'
+            self.player_page_data['player_selection_alert'] = None
+            self.player_page_data['computer_selection_alert'] = None
+            self.draw_player_choices()
 
 
-            # if(len(self.player_page_data['past_matches']) == 5 and self.player_page_data['match_state'] == 'waiting'):          
+        else:
+            if(self.player_page_data['match_state'] == 'completed'):
+                self.swipe_transition(self.current_scene + 1)
+            else:
+                self.player_page_data['match_state'] = 'waiting'
+                self.player_page_data['player_selection_alert'] = None
+                self.player_page_data['computer_selection_alert'] = None
+
+        # Display particles when attacking with AW
+        # if(self.player_page_data['player_attack_particles'] != None):
+        #     if(self.player_page_data['player_attack_particles'].active):
+        #         self.player_page_data['player_attack_particles'].draw(self.screen)
+        #     else:
+        #         self.player_page_data['player_attack_particles'] = None
+        # if(self.player_page_data['opponent_attack_particles'] != None):
+        #     if(self.player_page_data['opponent_attack_particles'].active):
+        #         self.player_page_data['opponent_attack_particles'].draw(self.screen)
+        #     else:
+        #         self.player_page_data['opponent_attack_particles'] = None
+
+        if(len(self.player_page_data['past_matches']) == 5):
+            self.player_page_data['next_button'].draw(self.screen, mouse_x, mouse_y)
+
+
+        # if(len(self.player_page_data['past_matches']) == 5 and self.player_page_data['match_state'] == 'waiting'):
+                
+
 
     def handle_explanation_events(self, event):
         if(event.type == pygame.MOUSEBUTTONDOWN):

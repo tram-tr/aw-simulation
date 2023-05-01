@@ -72,7 +72,7 @@ class Game:
         self.player = Player()
         self.countries = [Country(strategy) for strategy in self.settings.strategies]
         font_path = os.path.join("assets", "fonts", "Minecraft.ttf")
-        self.font = pygame.font.Font(font_path, 20)
+        self.font = pygame.font.Font(font_path, 15)
         self.intro_text = [
             "Welcome to our simulation project exploring", 
             "the impact of autonomous weapons on international relations.",
@@ -89,7 +89,7 @@ class Game:
             (200, 200, 200), (225, 225, 225), self.font
         )
         self.current_scene = 0 
-        self.num_scenes = 3
+        self.num_scenes = 5
         self.running = True
         self.current_line = 0
         self.current_char = 0
@@ -106,6 +106,14 @@ class Game:
                 # 'deactivated': False,
                 'active': True,
             },
+            # 'description_top': {["The decision is yours to make. Before you, lies a terminal that controls an", 
+            #                         "autonomous weapon system. If you activate it, your opponent gains an advantage,",
+            #                         "but if they activate it, you gain an advantage. You both have a choice to either",
+            #                         "COOPERATE (activate the weapon) or CHEAT (refrain from activating the weapon)."]},
+
+            # 'description_bottom': {["Let's say your opponent decides to CHEAT and does not activate the weapon", 
+            #                         "What's your move in this game of strategic warfare and moral dilemma?"]},
+
             'smoke_background': {
                 'smoke': SmokeBackground(20, (0, 0, 0)),
                 'active': True,
@@ -148,6 +156,47 @@ class Game:
             'result': 0
         }
 
+        self.results_page_data = {
+            'developed': [ "DEVELOPED: Greetings! I never start with force, but I’m not afraid ",
+                          "to retaliate by copying your actions. An eye for an eye, a tooth for a tooth.",],
+            'developing': [ "DEVELOPING: My priorities are always changing based on the needs of my country.",
+                          "Might use ‘em, might not."],
+            'resource': ["RESOURCE RICH: Fool me once, shame on you; fool me twice, shame on me.",
+                         "I will not give second chances in war."],
+            'military': ["MILITARY: We are not afraid to make sacrifices for the benefit of our country.",
+                         "Autonomous weapons are the answer."],
+            'peaceful': ["PEACEFUL: Violence is never the answer."],
+        }
+
+        self.tournament_page_data = {
+            'instruction_panel': {
+                'panel': InfoPanel(["It's showdown time! Each country will now play", "against every other country, five rounds per matchup.", "Who will emerge victorious? Think fast--and PLACE YOUR BETS!"], "Let's begin!", self.font),
+                'active': True,
+            },
+            'round_data': [ "Match 1: Developed vs Military", 
+                            "Match 2: Developed vs Developing", 
+                            "Match 3: Developed vs Peaceful",
+                            "Match 4: Developed vs Resource Rich",
+                            "Match 5: Military vs Developing",
+                            "Match 6: Military vs Peaceful",
+                            "Match 7: Military vs Resource Rich",
+                            "Match 8: Developing vs Peaceful",
+                            "Match 9: Developing vs Resource Rich",
+                            "Match 10: Peaceful vs Resource Rich" ], 
+
+            'country_data': ["developed", "developing", "military", "peaceful", "resource rich"],
+            'strategy_data': ["cautious", "unpredictable", "aggressive", "cooperative", "defensive"],
+            'tournament_data': [[-1,3,0,0,0], [19,3,20,0,0], [39,3,20,20,0], [57,3,20,20,18], [57,33,10,20,18], [57,36,10,19,18], [57,45,10,19,15], [57,45,30,39,15], [57,45,29,39,42], [57,45,29,46,45]],
+            'next_button': Button("Next match...", 
+                (self.settings.screen_width // 4), self.settings.screen_height*0.75, 
+                self.settings.screen_width//2, 50,
+                (200, 200, 200), (225, 225, 225), self.font),
+            'final_button': Button("Results!", 
+                (self.settings.screen_width // 4), self.settings.screen_height*0.75, 
+                self.settings.screen_width//2, 50,
+                (200, 200, 200), (225, 225, 225), self.font),
+            'current_match': 0,
+        }
 
     def _display_intro_text(self):
         y = 100
@@ -205,6 +254,8 @@ class Game:
                 self.handle_player_events(event)
             elif(self.current_scene == 2):
                 self.handle_explanation_events(event)
+            elif(self.current_scene == 3):
+                self.handle_tournament_events(event)
                 
     def handle_intro_events(self, event):
         if(event.type == pygame.MOUSEBUTTONDOWN):
@@ -319,6 +370,8 @@ class Game:
             self.player_page()
         elif(self.current_scene == 2):
             self.explanation_page()
+        elif(self.current_scene == 3):
+            self.tournament_page()
 
         self.draw_nav_arrows()
 
@@ -438,8 +491,6 @@ class Game:
 
                                     
                                     
-
-
     def player_page(self):
         mouse_x, mouse_y = pygame.mouse.get_pos()
         if(self.player_page_data['smoke_background']['active']):
@@ -528,14 +579,64 @@ class Game:
                 self.player_page_data['next_button'].draw(self.screen, mouse_x, mouse_y)
 
 
-            # if(len(self.player_page_data['past_matches']) == 5 and self.player_page_data['match_state'] == 'waiting'):
-                
+            # if(len(self.player_page_data['past_matches']) == 5 and self.player_page_data['match_state'] == 'waiting'):          
 
     def handle_explanation_events(self, event):
-        pass
+        if(event.type == pygame.MOUSEBUTTONDOWN):
+
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            if self.tournament_page_data['instruction_panel']['panel'].active and self.player_page_data['instruction_panel']['panel'].is_hover(mouse_x, mouse_y):
+                self.tournament_page_data['instruction_panel']['panel'].active = False
+            elif self.tournament_page_data['next_button'].is_hover(mouse_x, mouse_y):
+                self.swipe_transition(self.current_scene + 1)
         # Handle events on the explanation page.
 
     def explanation_page(self):
-        text_surface = self.font.render("Explanation Page.", True, (0, 0, 0))
+        # Render the title text
+        # text_surface = self.font.render("Explanation page", True, (0, 0, 0))
+        # text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2))
+        # self.screen.blit(text_surface, text_rect)
+        # Define the text to display
+
+        font_path = os.path.join("assets", "fonts", "Minecraft.ttf")
+        self.font = pygame.font.Font(font_path, 18)
+        # Render the text
+        text_surface = self.font.render("Your total scores are...", True, (0,0,0))
+
+        # Draw the text on the screen surface
+        self.screen.blit(text_surface, (30, 30))
+        
+        self.font = pygame.font.Font(font_path, 14)
+        # Render the explanation text for each category
+        y_offset = 100
+        for key, values in self.results_page_data.items():
+            for value in values:
+                explanation_surface = self.font.render(value, True, (0, 0, 0))
+                explanation_rect = explanation_surface.get_rect(center=(self.settings.screen_width // 2, y_offset))
+                self.screen.blit(explanation_surface, explanation_rect)
+                y_offset += 30
+            y_offset += 20
+
+    
+    def handle_tournament_events(self, event):
+        if(event.type == pygame.MOUSEBUTTONDOWN):
+
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            if self.tournament_page_data['instruction_panel']['panel'].active and self.player_page_data['instruction_panel']['panel'].is_hover(mouse_x, mouse_y):
+                self.tournament_page_data['instruction_panel']['panel'].active = False
+            elif self.tournament_page_data['next_button'].is_hover(mouse_x, mouse_y):
+                self.swipe_transition(self.current_scene + 1)
+
+    def tournament_page(self):
+        text_surface = self.font.render("The tournament", True, (0, 0, 0))
         text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2))
         self.screen.blit(text_surface, text_rect)
+
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+    
+    def tournament_results(self):
+        text_surface = self.font.render("Tournament results", True, (0, 0, 0))
+        text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2))
+        self.screen.blit(text_surface, text_rect)
+
+        mouse_x, mouse_y = pygame.mouse.get_pos()

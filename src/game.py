@@ -65,12 +65,12 @@ class Game:
             "autonous weapons in conflict", "with each presented threat..."
         ]
         self.continue_button = Button(
-            "Continue", self.settings.screen_width // 2 - 100, 400, 200, 50,
+            "Continue", self.settings.screen_width // 2 - 100, 440, 200, 50,
             (200, 200, 200), (225, 225, 225), self.font
         )
 
         self.current_scene = 0 
-        self.num_scenes = 5
+        self.num_scenes = 9
         self.running = True
         self.current_line = 0
         self.current_char = 0
@@ -81,15 +81,19 @@ class Game:
         self.navleft = NavArrowLeft(40)
         self.navright = NavArrowRight(40)
 
+        self.info = {
+            'desc_top': ["The decision is yours to make. Before you, lies a terminal that controls",
+                         "an autonomous weapon system. If you activate it, you lose resources.",
+                         "If one activates and the other doesn't, one could incur great loss of human life.",
+                         "If neither activates, the least lives are lost and resources are used."],
+            'nash': ["-10 lives, -100 resources", # A and B
+                     "0 human lives, -100 resources", # A use, B doesn't
+                     "-100 human lives, 0 resources", # A doesn't, B does
+                     "-1 human life, -10 resources"], # A doesn't, B doesn't
+            'options': ["use AWs", "don't use AWs"],
+            'desc_bottom': ["What's your move in this game of strategic warfare and moral dilemma?"]
+        }
         self.player_page_data = {
-            # 'description_top': {["The decision is yours to make. Before you, lies a terminal that controls an", 
-            #                         "autonomous weapon system. If you activate it, your opponent gains an advantage,",
-            #                         "but if they activate it, you gain an advantage. You both have a choice to either",
-            #                         "COOPERATE (activate the weapon) or CHEAT (refrain from activating the weapon)."]},
-
-            # 'description_bottom': {["Let's say your opponent decides to CHEAT and does not activate the weapon", 
-            #                         "What's your move in this game of strategic warfare and moral dilemma?"]},
-
             'smoke_background': {
                 'smoke': SmokeBackground(20, (0, 0, 0)),
                 'active': True,
@@ -124,6 +128,10 @@ class Game:
             # [(player_payoff, comp_payoff), (...)]
             'payoffs': [],
             
+            # hold player lives and resources lost each match
+            'player_lives_lost_match': [],
+            'player_resources_lost_match': [],
+
             # display lives and resources lost at end of game for total score 
             'player_lives_lost': 0,
             'player_resources_lost': 0,
@@ -185,8 +193,28 @@ class Game:
                 self.settings.screen_width//2, 50,
                 (200, 200, 200), (225, 225, 225), self.font),
             'current_match': -1,
+        } 
+        self.payoff_data = {
+            '1': [ "Developing (strategy: unpredictable) = 18.5 + 170.7 + 218 + 18.5 = 425.7",],
+            '2': [ "Developed (strategy: copycat) = 230 + 18.5 + 218 + 44.8 = 511.3"],
+            '3': [ "Resource Rich (strategy: dont use until another does) = 84.8 + 151.1 + 18.5 + 350 = 604.4"],
+            '4': [ "Peaceful (strategy: never use) = 178 + 164.8 + 178 +150 = 670.8."],
+            '5': [ "Military (strategy: always use) = 270 + 210.7 + 284 + 71.1 = 835.8"],
         }
-        
+        self.takeaway_data = {
+            '1': [ "One might expect a more deliberate strategy to perform better, but a random",
+                  "strategy can be effective in the short-term where other players' strategies are",
+                  "predictable, as it is difficult for other countries to anticipate and respond."],
+            '2': [ "The developed country with the copycat strategy performed the next-best. With a", 
+                  "payoff score of 511.3, it adapted to other countries to avoid being exploited."],
+            '3': [ "Countries that adopt a less aggressive approach, such as the developing country", 
+                  "with a random strategy or the peaceful country that never uses AWs, may fare",
+                  "better in terms of minimizing net loss."],
+            '4': [ "The resource-rich country's strategy of not using AWs until another country does",
+                  "may be effective in initially minimizing loss, but risks escalating the use of AWs",
+                  "in a conflict, leading to greater loss of life and resources in the long run."]
+        }
+
         # calculate league simulation results before rendering
         self.run_league_simluation()
 
@@ -236,6 +264,21 @@ class Game:
             if self.current_line < len(self.tournament_intro_text) and self.current_char > len(self.tournament_intro_text[self.current_line]):
                 self.current_line += 1
                 self.current_char = 0
+        
+        text_surface = self.font.render("Food for thought--the weight of human life against resources.", True, (0, 0, 160))
+        text_rect = text_surface.get_rect()
+        text_rect.center = (385, 250)
+        self.screen.blit(text_surface, text_rect)
+
+        text_surface = self.font.render("Payoff = Life Weight (w1) * Lost lives + Resource Weight (w2) * Lost Resources", True, (0, 0, 0))
+        text_rect = text_surface.get_rect()
+        text_rect.center = (385, 280)
+        self.screen.blit(text_surface, text_rect)
+
+        text_surface = self.font.render("W1 = 0.7, W2 = 0.3", True, (0, 0, 0))
+        text_rect = text_surface.get_rect()
+        text_rect.center = (385, 310)
+        self.screen.blit(text_surface, text_rect)
 
     def _display_player_intro_text(self):
         y = 100
@@ -259,6 +302,46 @@ class Game:
             if self.current_line < len(self.player_intro_text) and self.current_char > len(self.player_intro_text[self.current_line]):
                 self.current_line += 1
                 self.current_char = 0
+    
+    def _display_info_text(self):
+        # display desc_top
+        desc_top_y = 60
+        for line in self.info['desc_top']:
+            text_surface = self.font.render(line, True, (0, 0, 0))
+            text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2, desc_top_y))
+            self.screen.blit(text_surface, text_rect)
+            desc_top_y += 30
+
+       # display nash equilibrium
+        nash_y = 240
+        nash_x = self.settings.screen_width // 2 - 180
+
+        nash_values = self.info['nash']
+        for i in range(2):
+            for j in range(2):
+                value = nash_values[i * 2 + j]
+                text_surface = self.font.render(value, True, (0, 0, 0))
+                text_rect = text_surface.get_rect(center=(nash_x + j * 320, nash_y + i * 50))
+                self.screen.blit(text_surface, text_rect)
+        
+        text_surface = self.font.render("Use AWs", True, (0, 0, 160))
+        text_rect = text_surface.get_rect()
+        text_rect.center = (220, 200)
+        self.screen.blit(text_surface, text_rect)
+
+        text_surface = self.font.render("Don't use AWs", True, (0, 0, 160))
+        text_rect = text_surface.get_rect()
+        text_rect.center = (540, 200)
+        self.screen.blit(text_surface, text_rect)
+
+        # display desc_bottom
+        desc_bottom_y = 380
+        for line in self.info['desc_bottom']:
+            text_surface = self.font.render(line, True, (0, 0, 0))
+            text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2, desc_bottom_y))
+            self.screen.blit(text_surface, text_rect)
+            desc_bottom_y += 30
+        
 
     def run(self):
         # game loop
@@ -292,12 +375,14 @@ class Game:
             elif(self.current_scene == 1):
                 self.handle_intro_events(event)
             elif(self.current_scene == 2):
-                self.handle_player_events(event)
-            elif(self.current_scene == 3):
-                self.handle_explanation_events(event)
-            elif(self.current_scene == 4):
                 self.handle_intro_events(event)
-            elif (self.current_scene == 5):
+            elif(self.current_scene == 3):
+                self.handle_player_events(event)
+            elif(self.current_scene == 4):
+                self.handle_explanation_events(event)
+            elif(self.current_scene == 5):
+                self.handle_intro_events(event)
+            elif (self.current_scene == 6):
                 self.handle_tournament_events(event)
                 
     def handle_intro_events(self, event):
@@ -392,8 +477,6 @@ class Game:
                 
                 pygame.display.flip()
 
-
-
     def draw_nav_arrows(self):
         mouse_x, mouse_y = pygame.mouse.get_pos()
         # Left arrow
@@ -402,7 +485,7 @@ class Game:
             self.navleft.draw(self.screen, mouse_x, mouse_y)
         
         # Right arrow
-        if((self.current_scene < self.num_scenes-1) and (self.current_scene > 1)):
+        if((self.current_scene < self.num_scenes) and (self.current_scene > 1)):
             # Set up the right arrow coordinates
             self.navright.draw(self.screen, mouse_x, mouse_y)
 
@@ -414,13 +497,21 @@ class Game:
         elif(self.current_scene == 1):
             self.player_intro_page()
         elif(self.current_scene == 2):
-            self.player_page()
+            self.player_intro_info()
         elif(self.current_scene == 3):
-            self.explanation_page()
+            self.player_page()
         elif(self.current_scene == 4):
-            self.tournament_intro_page()
+            self.explanation_page()
         elif(self.current_scene == 5):
+            self.tournament_intro_page()
+        elif(self.current_scene == 6):
             self.tournament_page()
+        elif(self.current_scene == 7):
+            self.payoff_page()
+        elif(self.current_scene == 8):
+            self.takeaways_page()
+        elif(self.current_scene == 9):
+            self.credits_page()
 
         self.draw_nav_arrows()
 
@@ -434,6 +525,14 @@ class Game:
     
     def player_intro_page(self):
         self._display_player_intro_text()
+        if self.current_line >= len(self.intro_text):
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            self.continue_button.draw(self.screen, mouse_x, mouse_y)
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        self.continue_button.draw(self.screen, mouse_x, mouse_y)
+    
+    def player_intro_info(self):
+        self._display_info_text()
         if self.current_line >= len(self.intro_text):
             mouse_x, mouse_y = pygame.mouse.get_pos()
             self.continue_button.draw(self.screen, mouse_x, mouse_y)
@@ -485,7 +584,6 @@ class Game:
         self.player_page_data['country_resources'].lives = 0
         self.player_page_data['country_resources'].resources = 0
 
-
     def update_resources(self, player_choice, computer_choice):
         # use nash equilibrium
         if player_choice == 1 and computer_choice == 1:
@@ -504,7 +602,6 @@ class Game:
             self.player_page_data['player_resources'].resources -= self.mid_damage
             self.player_page_data['country_resources'].lives -= self.min_damage
             self.player_page_data['country_resources'].resources -= self.mid_damage
-
 
     def compute_payoff(self, mode):
         if not ((mode == "player_resources") or (mode == "country_resources")):
@@ -583,7 +680,9 @@ class Game:
                                 # record player's game total loss of lives and resources
                                 self.player_page_data['player_lives_lost'] += self.player_page_data['player_resources'].lives
                                 self.player_page_data['player_resources_lost'] += self.player_page_data['player_resources'].resources
-
+                                # record player's loss of lives and resources for each match
+                                self.player_page_data['player_lives_lost_match'].append(self.player_page_data['player_resources'].lives)
+                                self.player_page_data['player_resources_lost_match'].append(self.player_page_data['player_resources'].resources)
                                 # if not at last opponent
                                 if(len(self.player_page_data['past_matches']) < self.num_opponents):
                                     self.player_page_data['current_match'] += 1
@@ -596,9 +695,8 @@ class Game:
                                     result = 0
                                     for match in self.player_page_data['payoffs']:
                                         result += match[0]    
+                                    self.player_page_data['result'] = result
                                 
-
-
     def draw_player_choices(self):
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
@@ -711,7 +809,6 @@ class Game:
         if(len(self.player_page_data['past_matches']) == self.num_opponents):
             self.player_page_data['next_button'].draw(self.screen, mouse_x, mouse_y)                
 
-
     def handle_explanation_events(self, event):
         if(event.type == pygame.MOUSEBUTTONDOWN):
 
@@ -723,21 +820,17 @@ class Game:
         # Handle events on the explanation page.
 
     def explanation_page(self):
-        # Render the title text
-        # text_surface = self.font.render("Explanation page", True, (0, 0, 0))
-        # text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2))
-        # self.screen.blit(text_surface, text_rect)
         # Define the text to display
 
         font_path = os.path.join("assets", "fonts", "PixelOperatorSC-Bold.ttf")
-        self.font = pygame.font.Font(font_path, 18)
+        self.font = pygame.font.Font(font_path, 20)
         # Render the text
-        text_surface = self.font.render("Your total scores are...", True, (0,0,0))
+        text_surface = self.font.render("Your payoff score is: ", True, (0,0,0))
+
 
         # Draw the text on the screen surface
         self.screen.blit(text_surface, (30, 30))
         
-        self.font = pygame.font.Font(font_path, 14)
         # Render the explanation text for each category
         y_offset = 100
         for key, values in self.results_page_data.items():
@@ -747,7 +840,6 @@ class Game:
                 self.screen.blit(explanation_surface, explanation_rect)
                 y_offset += 30
             y_offset += 20
-
     
     def handle_tournament_events(self, event):
         mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -795,8 +887,7 @@ class Game:
         self.screen.blit(sprite, (250, 280))
         sprite = opponents[4]['sprite']
         self.screen.blit(sprite, (450, 280))
-        
-    
+         
     def draw_tournament_lines(self, p1, p2):
         tournament_lines = self.tournament_page_data["tournament_lines_dict"]
         for key in tournament_lines:
@@ -810,7 +901,6 @@ class Game:
                 color = self.rgb_colors['gray']
             
             pygame.draw.line(self.screen, color, start, end, 5) # 5 pixels thick
-
 
     def tournament_results(self, p1, p2):
         if (p1 < 0):
@@ -830,3 +920,66 @@ class Game:
         text2 = self.font.render(payoff_data, True, self.rgb_colors["dark_green"])
         self.screen.blit(text1, text1.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height * 0.75)))
         self.screen.blit(text2, text2.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height * 0.80)))
+
+    def payoff_page(self):
+        
+        text_surface = self.font.render("So the winner is… DEVELOPING!", True, (0, 0, 180))
+        text_rect = text_surface.get_rect()
+        text_rect.center = (400, 100)
+        self.screen.blit(text_surface, text_rect)
+
+        text_surface = self.font.render("This persona had the best payoff score of 425.7.", True, (0, 0, 0))
+        text_rect = text_surface.get_rect()
+        text_rect.center = (400, 130)
+        self.screen.blit(text_surface, text_rect)
+
+        y_offset = 200
+        for key, value in self.payoff_data.items():
+
+            # Render the text for the value
+            for i, line in enumerate(value):
+                text_surface = self.font.render(line, True, (0,0,0))
+                text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2, y_offset + i*2))
+                self.screen.blit(text_surface, text_rect)
+
+            y_offset += 40
+
+    def takeaways_page(self):
+
+            # Render the text
+            text_surface = self.font.render("Key Takeaways", True, (0,0,0))
+            text_rect = text_surface.get_rect(center=(self.settings.screen_width * 0.5, 30))
+            self.screen.blit(text_surface, text_rect)
+
+            # Display takeaway data
+            takeaway_y_pos = 50
+            for takeaway_number, takeaway_text in self.takeaway_data.items():
+                takeaway_number_surface = self.font.render(f"Takeaway {takeaway_number}: ", True, (160,0,0))
+                takeaway_number_rect = takeaway_number_surface.get_rect(top=takeaway_y_pos,left=30)
+                self.screen.blit(takeaway_number_surface, takeaway_number_rect)
+
+                takeaway_y_pos += 30
+
+                for line in takeaway_text:
+                    takeaway_surface = self.font.render(line, True, (0,0,0))
+                    takeaway_rect = takeaway_surface.get_rect(top=takeaway_y_pos,left=30)
+                    self.screen.blit(takeaway_surface, takeaway_rect)
+
+                    takeaway_y_pos += 30
+                takeaway_y_pos += 10
+
+    def credits_page(self):
+        text_surface = self.font.render("Credits", True, (0, 0, 0))
+        text_rect = text_surface.get_rect()
+        text_rect.center = (380, 100)
+        self.screen.blit(text_surface, text_rect)
+
+        text_surface = self.font.render("SVS Tech Ethics, Spring 2023", True, (0, 0, 0))
+        text_rect = text_surface.get_rect()
+        text_rect.center = (380, 200)
+        self.screen.blit(text_surface, text_rect)
+
+        text_surface = self.font.render("Creators: Tram, Sam, Roy, Yewon, Solina", True, (0, 0, 0))
+        text_rect = text_surface.get_rect()
+        text_rect.center = (380, 250)
+        self.screen.blit(text_surface, text_rect)
